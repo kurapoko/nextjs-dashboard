@@ -2,8 +2,10 @@
 
 import { z } from 'zod';
 import { sql } from '@vercel/postgres'
+import { signIn } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { AuthError } from 'next-auth';
 
 export type State = {
   errors?: {
@@ -96,5 +98,25 @@ export async function deleteInvoice(id: string) {
     return { message: 'Deleted Invoice.' };
   } catch (error) {
     return { message: 'Database Error: Failed to Delete Invoice.' };
+  }
+}
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if( error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return { message: 'Invalid Credentials.' };
+        default:
+          return { message: 'An error occurred. Please try again.' };
+      }
+    }
+
+    throw error;
   }
 }
